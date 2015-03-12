@@ -8,7 +8,7 @@
 
 /**
  * The Flight class is a static representation of the framework.
- * 
+ * 核心函数
  * @method  static void map($name, $callback) Creates a custom framework method.
  * @method  static void register($name, $class, array $params = array(), $callback = null) Registers a class to a framework method.
  * @method  static void before($name, $callback) Adds a filter before a framework method.
@@ -18,6 +18,7 @@
  * @method  static void set($key, $value) Sets a variable.
  * @method  static void has($key) Checks if a variable is set.
  * @method  static void clear($key = null) Clears a variable.
+ * 扩展函数
  * @method  static void start() Starts the framework.
  * @method  static void stop() Stops the framework and sends a response.
  * @method  static void halt($code = 200, $message = '') Stop the framework with an optional status code and message.

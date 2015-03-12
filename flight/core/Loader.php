@@ -38,6 +38,7 @@ class Loader {
 
     /**
      * Registers a class.
+     * 注册一个类
      *
      * @param string $name Registry name
      * @param string|callable $class Class name or function to instantiate class
@@ -61,6 +62,7 @@ class Loader {
 
     /**
      * Loads a registered class.
+     * 加载一个已注册类
      *
      * @param string $name Method name
      * @param bool $shared Shared instance
@@ -69,11 +71,14 @@ class Loader {
     public function load($name, $shared = true) {
         $obj = null;
 
+        // $this->classe 注册过的类
+        // $this->instances 加载过的实例
         if (isset($this->classes[$name])) {
             list($class, $params, $callback) = $this->classes[$name];
 
             $exists = isset($this->instances[$name]);
 
+            // 共享实例
             if ($shared) {
                 $obj = ($exists) ?
                     $this->getInstance($name) :
@@ -98,6 +103,7 @@ class Loader {
 
     /**
      * Gets a single instance of a class.
+     * 得到一个单例对象
      *
      * @param string $name Instance name
      * @return object Class instance
@@ -149,6 +155,7 @@ class Loader {
 
     /**
      * Starts/stops autoloader.
+     * 注册，注销自动加载函数
      *
      * @param bool $enabled Enable/disable autoloading
      * @param mixed $dirs Autoload directories
@@ -167,7 +174,7 @@ class Loader {
     }
 
     /**
-     * Autoloads classes.
+     * Autoloads classes. 自动加载函数
      *
      * @param string $class Class name
      */
@@ -177,7 +184,7 @@ class Loader {
         foreach (self::$dirs as $dir) {
             $file = $dir.'/'.$class_file;
             if (file_exists($file)) {
-                require $file;
+                require $file;  // 寻找文件并加载
                 return;
             }
         }

@@ -44,8 +44,8 @@ class Engine {
     public function __construct() {
         $this->vars = array();
 
-        $this->loader = new Loader();
-        $this->dispatcher = new Dispatcher();
+        $this->loader = new Loader();           // 对象加载
+        $this->dispatcher = new Dispatcher();   // 负责功能调度
 
         $this->init();
     }
@@ -53,19 +53,23 @@ class Engine {
     /**
      * Handles calls to class methods.
      *
+     * 动态调用通过该函数实现(调用不存在函数时调用)
      * @param string $name Method name
      * @param array $params Method parameters
      * @return mixed Callback results
      */
     public function __call($name, $params) {
+        // 判断是类还是可直接调用函数
         $callback = $this->dispatcher->get($name);
 
+        // 如果是函数，通过dispatcher处理
         if (is_callable($callback)) {
             return $this->dispatcher->run($name, $params);
         }
-
+        // 是否是共享实例
         $shared = (!empty($params)) ? (bool)$params[0] : true;
 
+        // 加载该类的对象
         return $this->loader->load($name, $shared);
     }
 
@@ -73,18 +77,19 @@ class Engine {
 
     /**
      * Initializes the framework.
+     * 框架初始化
      */
     public function init() {
         static $initialized = false;
         $self = $this;
-
+        // var_dump($this);die();
         if ($initialized) {
             $this->vars = array();
             $this->loader->reset();
             $this->dispatcher->reset();
         }
 
-        // Register default components
+        // Register default components 注册默认组件
         $this->loader->register('request', '\flight\net\Request');
         $this->loader->register('response', '\flight\net\Response');
         $this->loader->register('router', '\flight\net\Router');
@@ -92,7 +97,9 @@ class Engine {
             $view->path = $self->get('flight.views.path');
         });
 
-        // Register framework methods
+        // Register framework methods 注册框架方法
+        // Flight中，method会通过dispatcher的set函数将对应的回调函数绑定到一个事件中  
+        // 为了可以进行动态调用，Enginge的扩展函数全部是通过 _method 的名字定义的  
         $methods = array(
             'start','stop','route','halt','error','notFound',
             'render','redirect','etag','lastModified','json','jsonp'
@@ -101,7 +108,7 @@ class Engine {
             $this->dispatcher->set($name, array($this, '_'.$name));
         }
 
-        // Default configuration settings
+        // Default configuration settings 默认配置
         $this->set('flight.base_url', null);
         $this->set('flight.handle_errors', true);
         $this->set('flight.log_errors', false);
@@ -157,6 +164,8 @@ class Engine {
 
     /**
      * Maps a callback to a framework method.
+     * 将一个回调函数映射到框架方法中
+     * 通过该函数映射自定义函数
      *
      * @param string $name Method name
      * @param callback $callback Callback function
@@ -166,12 +175,14 @@ class Engine {
         if (method_exists($this, $name)) {
             throw new \Exception('Cannot override an existing framework method.');
         }
-
+        // 将对应的回调函数绑定到一个事件
         $this->dispatcher->set($name, $callback);
     }
 
     /**
      * Registers a class to a framework method.
+     * 将一个类注册到框架方法中
+     * 通过该函数注册自定义类
      *
      * @param string $name Method name
      * @param string $class Class name
@@ -183,7 +194,7 @@ class Engine {
         if (method_exists($this, $name)) {
             throw new \Exception('Cannot override an existing framework method.');
         }
-
+        // 使用loader的register函数进行注册
         $this->loader->register($name, $class, $params, $callback);
     }
 

@@ -1,0 +1,817 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Flight - 一个可扩展的PHP微框架</title>
+<link rel="stylesheet" type="text/css" href="reset-min.css">
+<link rel="stylesheet" type="text/css" href="main.css">
+</head>
+<body>
+  <div id="container">
+    <div id="header">
+        <div id="title">Flight</div>
+        <div id="subtitle">一个可扩展的PHP微框架</div>
+        <div id="subtitle">QQ交流群：<b style="color:#666;">344868625</b></div>
+        <div id="nav">
+            <a href="/">主页</a>
+            <a href="/install">安装</a>
+            <a href="/learn">学习</a>
+            <a href="https://github.com/mikecao/flight" target="_blank">代码</a>
+        </div>
+    </div>
+    <div id="content">
+    <h1>用户指南</h1>
+
+    <ul>
+    <li><a href="#routing">路由</a></li>
+    <li><a href="#extending">扩展</a></li>
+    <li><a href="#overriding">覆盖</a></li>
+    <li><a href="#filtering">过滤</a></li>
+    <li><a href="#variables">变量</a></li>
+    <li><a href="#views">视图</a></li>
+    <li><a href="#errors">错误处理</a></li>
+    <li><a href="#redirects">重定向</a></li>
+    <li><a href="#requests">请求</a></li>
+    <li><a href="#httpcaching">HTTP 缓存</a></li>
+    <li><a href="#json">JSON</a></li>
+    <li><a href="#configuration">配置</a></li>
+    <li><a href="#methods">框架方法</a></li>
+    </ul>
+
+    <hr />
+
+    <p><a name="routing"></a></p>
+
+    <h1>路由</h1>
+
+    <p>路由在 Flight 中是通过与一个回调函数匹配的URL模式。</p>
+
+    <pre><code>
+    Flight::route('/', function(){
+        echo 'hello world!';
+    });
+    </code></pre>
+
+    <p>可调用的回调可以是任何对象。所以你可以使用常规的功能:</p>
+
+    <pre><code>
+    function hello(){
+        echo 'hello world!';
+    }
+
+    Flight::route('/', 'hello');
+    </code></pre>
+
+    <p>或者是一个类方法:</p>
+
+    <pre><code>
+    class Greeting {
+        public static function hello() {
+            echo 'hello world!';
+        }
+    }
+
+    Flight::route('/', array('Greeting','hello'));
+    </code></pre>
+
+    <p>路由的匹配根据顺序定义。第一个匹配的路由请求将被调用。</p>
+
+    <h2>路由方法</h2>
+
+    <p>默认情况下,路由模式匹配的方法允许所有请求。你可以对特定的方法将一个标识符放在URL前面。</p>
+
+    <pre><code>
+    Flight::route('GET /', function(){
+        echo 'I received a GET request.';
+    });
+
+    Flight::route('POST /', function(){
+        echo 'I received a POST request.';
+    });
+    </code></pre>
+
+    <p>您还可以将多个方法映射到一个回调，使用一个 “<code>|</code>” 分隔符:</p>
+
+    <pre><code>
+    Flight::route('GET|POST /', function(){
+        echo 'I received either a GET or a POST request.';
+    });
+    </code></pre>
+
+    <h2>正则表达式</h2>
+
+    <p>你可以在路由中使用正则表达式：</p>
+
+    <pre><code>
+    Flight::route('/user/[0-9]+', function(){
+        // This will match /user/1234
+    });
+    </code></pre>
+
+    <h2>命名参数</h2>
+
+    <p>你可以指定命名参数路由，她将被传递到你的回调函数。</p>
+
+    <pre><code>
+    Flight::route('/@name/@id', function($name, $id){
+        echo "hello, $name ($id)!";
+    });
+    </code></pre>
+
+    <p>你还可以使用包含正则表达式的命名参数，通过使用 “<code>:</code>” 分隔符:</p>
+
+    <pre><code>
+    Flight::route('/@name/@id:[0-9]{3}', function($name, $id){
+        // This will match /bob/123
+        // But will not match /bob/12345
+    });
+    </code></pre>
+
+    <h2>可选参数</h2>
+
+    <p>您可以指定可选的命名参数,她被包在匹配的括号中。</p>
+
+    <pre><code>
+    Flight::route('/blog(/@year(/@month(/@day)))', function($year, $month, $day){
+        // This will match the following URLS:
+        // /blog/2012/12/10
+        // /blog/2012/12
+        // /blog/2012
+        // /blog
+    });
+    </code></pre>
+
+    <p>任何可选参数没有匹配将被传递NULL。</p>
+
+    <h2>通配符</h2>
+
+    <p>如果你想在单独URL部分匹配多个片段的路由。可以使用 “<code>*</code>” 通配符。</p>
+
+    <pre><code>
+    Flight::route('/blog/*', function(){
+        // This will match /blog/2000/02/01
+    });
+    </code></pre>
+
+    <p>所有的请求路由到一个回调,你可以写点东西：</p>
+
+    <pre><code>
+    Flight::route('*', function(){
+        // Do something
+    });
+    </code></pre>
+
+    <h2>通过</h2>
+
+    <p>您可以通过在回调函数通过返回 <code>true</code> 执行到下一个匹配的路由。</p>
+
+    <pre><code>
+    Flight::route('/user/@name', function($name){
+        // Check some condition
+        if ($name != "Bob") {
+            // Continue to next route
+            return true;
+        }
+    });
+
+    Flight::route('/user/*', function(){
+        // This will get called
+    });
+    </code></pre>
+
+    <hr />
+
+    <p><a name="extending"></a></p>
+
+    <h1>扩展</h1>
+
+    <p>Flight 被设计成一个可扩展的框架。框架附带了一组默认的方法和组件,但是她允许您映射的自己的方法,注册自己的类,或者覆盖现有的类和方法。</p>
+
+    <h2>映射方法</h2>
+
+    <p>映射你自己的方法，通过 “<code>map</code>” 方法：</p>
+
+    <pre><code>
+    // Map your method
+    Flight::map('hello', function($name){
+        echo "hello $name!";
+    });
+
+    // Call your custom method
+    Flight::hello('Bob');
+    </code></pre>
+
+    <h2>注册类</h2>
+
+    <p>注册你自己的类,您可以使用 “<code>register</code>” 方法：</p>
+
+    <pre><code>
+    // Register your class
+    Flight::register('user', 'User');
+
+    // Get an instance of your class
+    $user = Flight::user();
+    </code></pre>
+
+    <p>注册方法还允许为你的类构造函数传递参数。因此,当加载你的自定义类,她将预初始化。你可以定义的构造函数参数传递额外的数组。这里有一个加载数据库连接的例子:</p>
+
+    <pre><code>
+    // Register class with constructor parameters
+    Flight::register('db', 'PDO', array('mysql:host=localhost;dnbname=test','user','pass'));
+
+    // Get an instance of your class
+    // This will create an object with the defined parameters
+    //
+    //     new PDO('mysql:host=localhost;dnbname=test','user','pass');
+    //
+    $db = Flight::db();
+    </code></pre>
+
+    <p>如果你加了一个额外的回调参数,她将在类构建后立即执行。这允许你在新对象执行任何程序设置。回调函数接受一个参数,新对象的一个实例。</p>
+
+    <pre><code>
+    // The callback will be passed the object that was constructed
+    Flight::register('db', 'PDO', array('mysql:host=localhost;dnbname=test','user','pass'), function($db){
+        $db-&gt;setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    });
+    </code></pre>
+
+    <p>默认情况下,每次你加载你的类都会得到一个共享实例。要得到一个新的实例,简单地通过 “<code>false</code>” 作为参数:</p>
+
+    <pre><code>
+    // Shared instance of the class
+    $shared = Flight::db();
+
+    // New instance of the class
+    $new = Flight::db(false);
+    </code></pre>
+
+    <p>请记住,映射方法在注册类时有优先选择。如果你的声明都使用相同的名称,只有映射到的方法被调用。</p>
+
+    <hr />
+
+    <p><a name="overriding"></a></p>
+
+    <h1>覆盖</h1>
+
+    <p>Flight 允许你覆盖默认的功能来满足自己的需求,而不需要修改任何代码。</p>
+
+    <p>例如, 当 Flight 没有匹配到 URL 的路由, 她会调用 “<code>notFound</code>” 方法发送一个通用的 “<code>HTTP 404</code>” 响应。
+    您可以覆盖此行为通过使用 “<code>map</code>” 方法：</p>
+
+    <pre><code>
+    Flight::map('notFound', function(){
+        // Display custom 404 page
+        include 'errors/404.html';
+    });
+    </code></pre>
+
+    <p>Flight 还允许您替换框架的核心组件
+    例如可以用你的自定义类替换默认的路由器类</p>
+
+    <pre><code>
+    // Register your custom class
+    Flight::register('router', 'MyRouter');
+
+    // When Flight loads the Router instance, it will load your class
+    $myrouter = Flight::router();
+    </code></pre>
+
+    <p>Framework 的 “<code>map</code>” 和 “<code>register</code>” 方法不能被覆盖。如果你这样做，会得到一个错误。</p>
+
+    <hr />
+
+    <p><a name="filtering"></a></p>
+
+    <h1>过滤</h1>
+
+    <p>Flight 允许你在调用之前和之后使用过滤方法。你需要记住它没有预定义的钩子。您可以过滤任何默认的框架方法以及任何你自定义的映射方法。</p>
+
+    <p>一个过滤器函数如下所示：</p>
+
+    <pre><code>
+    function(&amp;$params, &amp;$output) {
+        // Filter code
+    }
+    </code></pre>
+
+    <p>你可以使用传入的变量操纵输入或输出参数。</p>
+
+    <p>你可以在运行之前加一个过滤，像这样：</p>
+
+    <pre><code>
+    Flight::before('start', function(&amp;$params, &amp;$output){
+        // Do something
+    });
+    </code></pre>
+
+    <p>你可以在运行之后加一个过滤，像这样：</p>
+
+    <pre><code>
+    Flight::after('start', function(&amp;$params, &amp;$output){
+        // Do something
+    });
+    </code></pre>
+
+    <p>你可以添加多个过滤器来实现你想要的任何方法。她会按照声明的顺序执行。</p>
+
+    <p>这是一个过滤的例子：</p>
+
+    <pre><code>
+    // Map a custom method
+    Flight::map('hello', function($name){
+        return "Hello, $name!";
+    });
+
+    // Add a before filter
+    Flight::before('hello', function(&amp;$params, &amp;$output){
+        // Manipulate the parameter
+        $params[0] = 'Fred';
+    });
+
+    // Add an after filter
+    Flight::after('hello', function(&amp;$params, &amp;$output){
+        // Manipulate the output
+        $output .= " Have a nice day!";
+    }
+
+    // Invoke the custom method
+    echo Flight::hello('Bob');
+    </code></pre>
+
+    <p>她将这样显示：</p>
+
+    <pre><code>
+    Hello Fred! Have a nice day! 
+    </code></pre>
+
+    <p>如果定义了多个过滤器,你可以在任何地方通过返回 “<code>false</code>” 来打破过滤功能：</p>
+
+    <pre><code>
+    Flight::before('start', function(&amp;$params, &amp;$output){
+        echo 'one';
+    });
+
+    Flight::before('start', function(&amp;$params, &amp;$output){
+        echo 'two';
+
+        // This will end the chain
+        return false;
+    });
+
+    // This will not get called
+    Flight::before('start', function(&amp;$params, &amp;$output){
+        echo 'three';
+    });
+    </code></pre>
+
+    <p>注意,  “<code>map</code>” 和 “<code>register</code>” 等核心方法不能被过滤，因为她们是被直接调用的。</p>
+
+    <hr />
+
+    <p><a name="variables"></a></p>
+
+    <h1>变量</h1>
+
+    <p>Flight 允许你保存变量,这样就可以在你的应用程序任何地方使用。</p>
+
+    <pre><code>
+    // Save your variable
+    Flight::set('id', 123);
+
+    // Elsewhere in your application
+    $id = Flight::get('id');
+    </code></pre>
+
+    <p>查看一个变量是否被你定义：</p>
+
+    <pre><code>
+    if (Flight::has('id')) {
+         // Do something
+    }
+    </code></pre>
+
+    <p>清除你的变量：</p>
+
+    <pre><code>
+    // Clears the id variable
+    Flight::clear('id');
+
+    // Clears all variables
+    Flight::clear();
+    </code></pre>
+
+    <p>Flight 还可以修改配置变量</p>
+
+    <pre><code>
+    Flight::set('flight.log_errors', true);
+    </code></pre>
+
+    <hr />
+
+    <p><a name="views"></a></p>
+
+    <h1>视图</h1>
+
+    <p>默认情况下 Flight 提供了一些基本的模板功能。调用 “<code>render</code>” 方法来显示一个视图模板并可传递一些数据：</p>
+
+    <pre><code>
+    Flight::render('hello.php', array('name' =&gt; 'Bob'));
+    </code></pre>
+
+    <p>你传入的模板数据将作为一个局部变量自动注入到引用的模板。模板文件是简单的 .php 文件。如果模板文件 “<code>hello.php</code>” 是这样的：</p>
+
+    <pre><code>
+    Hello, '&lt;?php echo $name; ?&gt;'!
+    </code></pre>
+
+    <p>她将输出：</p>
+
+    <pre><code>
+    Hello, Bob!
+    </code></pre>
+
+    <p>你也可以用 set 方法手动设置视图变量：</p>
+
+    <pre><code>
+    Flight::view()-&gt;set('name', 'Bob');
+    </code></pre>
+
+    <p><code>name</code> 变量可以用在你的所有视图中。所以你可以更简单的写成这样：</p>
+
+    <pre><code>
+    Flight::render('hello');
+    </code></pre>
+
+    <p>注意,当在 render 方法中指定模板的名称时, 你可以不用写 <code>.php</code> 文件后缀。</p>
+
+    <p>默认情况下 Flight 将寻找一个 “<code>views</code>” 的文件目录。你可以通过以下配置设置一个替代的模板路径：</p>
+
+    <pre><code>
+    Flight::set('flight.views.path', '/path/to/views');
+    </code></pre>
+
+    <h2>布局</h2>
+
+    <p>网站有一个常见的布局模板文件用来交换内容。在呈现一个布局时，你可以传递一个可选参数到 “<code>render</code>” 方法。</p>
+
+    <pre><code>
+    Flight::render('header', array('heading' =&gt; 'Hello'), 'header_content');
+    Flight::render('body', array('body' =&gt; 'World'), 'body_content');
+    </code></pre>
+
+    <p>你的视图将被保存在名为 “<code>header_content</code>” 和 “<code>body_content</code>” 的变量中，你可以在布局中这样做：</p>
+
+    <pre><code>
+    Flight::render('layout', array('title' =&gt; 'Home Page'));
+    </code></pre>
+
+    <p>如果模板文件像这样：</p>
+
+    <p><code>header.php</code>:</p>
+
+    <pre><code>
+    &lt;h1&gt;&lt;?php echo $heading; ?&gt;&lt;/h1&gt;
+    </code></pre>
+
+    <p><code>body.php</code>:</p>
+
+    <pre><code>
+    &lt;div&gt;&lt;?php echo $body; ?&gt;&lt;/div&gt;
+    </code></pre>
+
+    <p><code>layout.php</code>:</p>
+
+    <pre><code>
+    &lt;html&gt;
+    &lt;head&gt;
+    &lt;title&gt;&lt;?php echo $title; ?&gt;&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+    &lt;?php echo $header_content; ?&gt;
+    &lt;?php echo $body_content; ?&gt;
+    &lt;/body&gt;
+    &lt;/html&gt;
+    </code></pre>
+
+    <p>她将输出：</p>
+
+    <pre><code>
+    &lt;html&gt;
+    &lt;head&gt;
+    &lt;title&gt;Home Page&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+    &lt;h1&gt;Hello&lt;/h1&gt;
+    &lt;div&gt;World&lt;/div&gt;
+    &lt;/body&gt;
+    &lt;/html&gt;
+    </code></pre>
+
+    <h2>自定义视图</h2>
+
+    <p>Flight 允许你替换默认的视图引擎，只需注册自己的视图类。下面是如何使用 <a href="http://www.smarty.net/" target="_blank">Smarty</a> 模板引擎到你的视图：</p>
+
+    <pre><code>
+    // Load Smarty library
+    require './Smarty/libs/Smarty.class.php';
+
+    // Register Smarty as the view class
+    // Also pass a callback function to configure Smarty on load
+    Flight::register('view', 'Smarty', array(), function($smarty){
+        $smarty-&gt;template_dir = './templates/';
+        $smarty-&gt;compile_dir = './templates_c/';
+        $smarty-&gt;config_dir = './config/';
+        $smarty-&gt;cache_dir = './cache/';
+    });
+
+    // Assign template data
+    Flight::view()-&gt;assign('name', 'Bob');
+
+    // Display the template
+    Flight::view()-&gt;display('hello.tpl');
+    </code></pre>
+
+    <p>出于完整性的考虑,你也应该覆盖 Flight 的默认渲染方法：</p>
+
+    <pre><code>
+    Flight::map('render', function($template, $data){
+        Flight::view()-&gt;assign($data);
+        Flight::view()-&gt;display($template);
+    });
+    </code></pre>
+
+    <hr />
+
+    <p><a name="errors"></a></p>
+
+    <h1>错误处理</h1>
+
+    <h2>错误和异常</h2>
+
+    <p>所有的错误和异常都 Flight 传递到 “<code>error</code>” 方法中。
+    默认行为是发送一个通用 “<code>HTTP 500 Internal Server Error</code>” 响应，来显示一些简单的错误信息。</p>
+
+    <p>你可以根据自己的需求覆盖此行为：</p>
+
+    <pre><code>
+    Flight::map('error', function(Exception $ex){
+        // Handle error
+        echo $ex-&gt;getTraceAsString();
+    });
+    </code></pre>
+
+    <p>默认情况下，错误没有被记录到 web server。您可以通过改变配置启用她：</p>
+
+    <pre><code>
+    Flight::set('flight.log_errors', true);
+    </code></pre>
+
+    <h2>没有找到</h2>
+
+    <p>当一个 URL 没有被找到, Flight 将调用 <code>notFound</code> 方法。默认行为是发送一个 <code>HTTP 404 Not Found</code> 响应，来显示一些简单的错误信息。</p>
+
+    <p>你可以根据自己的需求覆盖此行为：</p>
+
+    <pre><code>
+    Flight::map('notFound', function(){
+        // Handle not found
+    });
+    </code></pre>
+
+    <hr />
+
+    <p><a name="redirects"></a></p>
+
+    <h1>重定向</h1>
+
+    <p>您可以传递一个新的 URL 通过 “<code>redirect</code>” 方法重定向。：</p>
+
+    <pre><code>
+    Flight::redirect('/new/location');
+    </code></pre>
+
+    <p>默认情况下 Flight 发送一个 HTTP 303 状态码。你可以自定义一个代码：</p>
+
+    <pre><code>
+    Flight::redirect('/new/location', 401);
+    </code></pre>
+
+    <hr />
+
+    <p><a name="requests"></a></p>
+
+    <h1>请求</h1>
+
+    <p>Flight 封装 HTTP 请求到一个对象, 你可以通过这样访问：</p>
+
+    <pre><code>
+    $request = Flight::request();
+    </code></pre>
+
+    <p>请求对象提供了以下属性：</p>
+
+    <pre><code>
+    url - 被请求的 URL
+    base - 被请求 URL 的父目录
+    method - 请求方法 (GET, POST, PUT, DELETE)
+    referrer - 引用的 URL
+    ip - 客户机的 IP 地址
+    ajax - 是不是一个 AJAX 请求
+    scheme - 服务器协议 (http, https)
+    user_agent - 浏览器的信息
+    body - 请求主体的原始数据
+    type - 内容类型
+    length - 内容长度
+    query - 查询字符串参数
+    data - Post 参数
+    cookies - Cookie 参数
+    files - 上传的文件
+    secure - 连接是否安全
+    accept - HTTP 接受参数
+    proxy_ip - 代理客户机的 IP 地址
+    </code></pre>
+
+    <p>你可以通过数组或对象访问 <code>query</code>，<code>data</code>，<code>cookies</code> 和 <code>files</code> 属性。</p>
+
+    <p>因此,要查询一个参数, 你可以这样：</p>
+
+    <pre><code>
+    $id = Flight::request()-&gt;query['id'];
+    </code></pre>
+
+    <p>或者这样：</p>
+
+    <pre><code>
+    $id = Flight::request()-&gt;query-&gt;id;
+    </code></pre>
+
+    <hr />
+
+    <p><a name="httpcaching"></a></p>
+
+    <h1>HTTP 缓存</h1>
+
+    <p>Flight 提供了内置的 HTTP 缓存。如果缓存条件满足, Flight 将返回一个 HTTP <code>304 Not Modified</code> 响应。下次客户端请求相同的资源时,她们会提示使用本地缓存版本。</p>
+
+    <h2>最后修改</h2>
+
+    <p>你可以使用 <code>lastModified</code> 传递一个 UNIX 时间戳来设置页面最后修改日期和时间。客户端将继续使用缓存,直到最后修改值发生了改变。</p>
+
+    <pre><code>
+    Flight::route('/news', function(){
+        Flight::lastModified(1234567890);
+        echo 'This content will be cached.';
+    });
+    </code></pre>
+
+    <h2>ETag</h2>
+
+    <p><code>ETag</code> 缓存同 <code>Last-Modified</code> 类似，除了你可以指定任何你想要的id资源:</p>
+
+    <pre><code>
+    Flight::route('/news', function(){
+        Flight::etag('my-unique-id');
+        echo 'This content will be cached.';
+    });
+    </code></pre>
+
+    <p>记住，使用 <code>lastModified</code> 或 <code>etag</code> 时都将设置并检查缓存值。如果缓存值于请求之间是相同的， Flight 将立即发送一个 <code>HTTP 304</code> 响应并停止处理。</p>
+
+    <h1>停止</h1>
+
+    <p>你可以在任何时候调用 <code>halt</code> 方法停止框架：</p>
+
+    <pre><code>
+    Flight::halt();
+    </code></pre>
+
+    <p>你还可以指定一个可选的 <code>HTTP</code> 状态代码和信息：</p>
+
+    <pre><code>
+    Flight::halt(200, 'Be right back...');
+    </code></pre>
+
+    <p>调用 <code>halt</code> 方法将丢弃任何响应内容。如果你想要停止框架并输出当前的响应，使用 <code>stop</code> 方法:</p>
+
+    <pre><code>
+    Flight::stop();
+    </code></pre>
+
+    <hr />
+
+    <p><a name="json"></a></p>
+
+    <h1>JSON</h1>
+
+    <p>Flight 支持发送 JSON 和 JSONP 响应。 你可以通过 json 方法传递一些JSON编码的数据：</p>
+
+    <pre><code>
+    Flight::json(array('id' =&gt; 123));
+    </code></pre>
+
+    <p>你可以使用 <code>jsonp</code> 方法用于 JSONP 请求。你可以通过传递查询参数名来定义你正在使用的回调函数：</p>
+
+    <pre><code>
+    Flight::jsonp(array('id' =&gt; 123), 'q');
+    </code></pre>
+
+    <p>所以，当制造一个GET请求，使用 <code>?q=my_func</code> ，你会得到这样的输出：</p>
+
+    <pre><code>
+    my_func({"id":123});
+    </code></pre>
+
+    <p>如果你不传递查询参数名将默认使用 <code>jsonp</code> 。</p>
+
+    <hr />
+
+    <p><a name="configuration"></a></p>
+
+    <h1>配置</h1>
+
+    <p>您可以自定义 Flight 的某些行为，通过使用 <code>set</code> 方法。</p>
+
+    <pre><code>
+    Flight::set('flight.log_errors', true);
+    </code></pre>
+
+    <p>下面是一个所有可用配置的列表。</p>
+
+    <pre><code>
+    flight.base_url - 覆盖 base url 请求。 (默认: null)
+    flight.handle_errors - 允许 Flight 处理所有内部错误。 (默认: true)
+    flight.log_errors - 将错误日志记录到 web server 的错误日志文件。 (默认: false)
+    flight.views.path - 包含视图模板文件的目录 (默认: ./views)
+    </code></pre>
+
+    <hr />
+
+    <p><a name="methods"></a></p>
+
+    <h1>框架方法</h1>
+
+    <p>Flight 被设计为易于使用和理解。下面是框架的全套方法。它包含的核心方法,常规的静态方法,和可扩展的方法,可以过滤或覆盖。</p>
+
+    <h2>核心方法</h2>
+
+    <pre><code>
+    Flight::map($name, $callback) // 创建一个自定义框架的方法。
+    Flight::register($name, $class, [$params], [$callback]) // 注册一个类的框架方法。
+    Flight::before($name, $callback) // 在一个框架方法之前添加一个过滤器。
+    Flight::after($name, $callback) // 在一个框架方法之后添加一个过滤器。
+    Flight::path($path) // 添加了一个半自动的类路径。
+    Flight::get($key) // 得到一个变量。
+    Flight::set($key, $value) // 设置一个变量。
+    Flight::has($key) // 检查一个变量是否设置。
+    Flight::clear([$key]) // 清除一个变量。
+    </code></pre>
+
+    <h2>可扩展的方法</h2>
+
+    <pre><code>
+    Flight::start() // 开始框架
+    Flight::stop() // 停止该框架并发送一个响应。
+    Flight::halt([$code], [$message]) // 停止该框架并带一个可选的状态代码和消息。
+    Flight::route($pattern, $callback) // 映射一个 URL 模式到回调。
+    Flight::redirect($url, [$code]) // 重定向到另一个URL。
+    Flight::render($file, [$data], [$key]) // 呈现一个模板文件。
+    Flight::error($exception) // 发送一个 HTTP 500 响应。
+    Flight::notFound() // 发送一个 HTTP 404 响应。
+    Flight::etag($id, [$type]) // 执行 ETag HTTP 缓存。
+    Flight::lastModified($time) // 执行最后更改的 HTTP 缓存。
+    Flight::json($data, [$code], [$encode]) // 发送一个 JSON 响应。
+    Flight::jsonp($data, [$param], [$code], [$encode]) // 发送一个 JSONP 响应。
+    </code></pre>
+
+    <p>任何被 <code>map</code> 和 <code>register</code> 的自定义方法都可以被过滤。</p>
+
+    <h1>框架实例</h1>
+
+    <p>Flight 并不是作为一个全局静态类运行，您可以选择作为一个对象实例运行它。</p>
+
+    <pre><code>
+    require 'flight/autoload.php';
+
+    use flight\Engine;
+
+    $app = new Engine();
+
+    $app-&gt;route('/', function(){
+        echo 'hello world!';
+    });
+
+    $app-&gt;start();
+    </code></pre>
+
+    <p>现在所有的静态方法都可以被作为常规的类方法。</p>
+    </div>
+    <div id="footer">
+      Copyright &copy; 2013 Mike Cao<br/>
+      Powered by Flight<br/>
+      中文翻译：Leon Cheek<br/>
+      <script src="http://s4.cnzz.com/z_stat.php?id=1000512190&web_id=1000512190" language="JavaScript"></script>
+    </div>
+  </div>
+</body>
+</html>

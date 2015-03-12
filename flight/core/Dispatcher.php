@@ -31,6 +31,7 @@ class Dispatcher {
 
     /**
      * Dispatches an event.
+     * 对事件进行分发处理
      *
      * @param string $name Event name
      * @param array $params Callback parameters
@@ -39,15 +40,15 @@ class Dispatcher {
     public function run($name, array $params = array()) {
         $output = '';
 
-        // Run pre-filters
+        // Run pre-filters      运行前置过滤器
         if (!empty($this->filters[$name]['before'])) {
             $this->filter($this->filters[$name]['before'], $params, $output);
         }
 
-        // Run requested method
+        // Run requested method 运行所请求的方法
         $output = $this->execute($this->get($name), $params);
 
-        // Run post-filters
+        // Run post-filters     运行后置过滤器
         if (!empty($this->filters[$name]['after'])) {
             $this->filter($this->filters[$name]['after'], $params, $output);
         }
@@ -57,6 +58,7 @@ class Dispatcher {
 
     /**
      * Assigns a callback to an event.
+     * 将回调注册到一个事件之中
      *
      * @param string $name Event name
      * @param callback $callback Callback function
@@ -67,6 +69,7 @@ class Dispatcher {
 
     /**
      * Gets an assigned callback.
+     * 得到事件关联的回调
      *
      * @param string $name Event name
      * @return callback $callback Callback function
@@ -104,6 +107,7 @@ class Dispatcher {
 
     /**
      * Hooks a callback to an event.
+     * 在事件上挂一个回调函数
      *
      * @param string $name Event name
      * @param string $type Filter type
@@ -149,6 +153,7 @@ class Dispatcher {
 
     /**
      * Calls a function.
+     * 调用一个函数
      *
      * @param string $func Name of function to call
      * @param array $params Function parameters
@@ -175,6 +180,7 @@ class Dispatcher {
 
     /**
      * Invokes a method.
+     * 调用一个方法
      *
      * @param mixed $func Class method
      * @param array $params Class method parameters
@@ -182,9 +188,10 @@ class Dispatcher {
      */
     public static function invokeMethod($func, array &$params = array()) {
         list($class, $method) = $func;
-
+        // 判断 $class 是否实例化
 		$instance = is_object($class);
 		
+        // 根据是否实例化，根据参数个数确定调用形式
         switch (count($params)) {
             case 0:
                 return ($instance) ?
